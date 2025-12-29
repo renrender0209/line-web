@@ -65,14 +65,18 @@ app.notFound((c) =>
   c.redirect("/?fallbackBy=" + encodeURIComponent(c.req.path))
 );
 
-const options = Deno.args[0] === "localhost"
-  ? {
+// 🔧 修正：環境に応じた起動設定
+if (Deno.env.get("DENO_DEPLOYMENT_ID")) {
+  // Deno Deploy環境
+  Deno.serve(app.fetch);
+} else if (Deno.args[0] === "localhost") {
+  // ローカル開発環境（HTTPS）
+  Deno.serve({
+    port: 443,
     cert: await Deno.readTextFile("./secret/cert.pem"),
     key: await Deno.readTextFile("./secret/key.pem"),
-  }
-  : {};
-
-Deno.serve({
-  port: 443,
-  ...options,
-}, app.fetch);
+  }, app.fetch);
+} else {
+  // その他の環境
+  Deno.serve({ port: 8000 }, app.fetch);
+}
